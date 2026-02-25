@@ -8,19 +8,3 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
-```
-
----
-
-## 🗂 Step 3: Your Final File Structure
-
-After replacing, your `src/` should look like this:
-```
-disney-vault/
-├── src/
-│   ├── App.jsx       ← replace with code above
-│   ├── App.css       ← replace with code above
-│   └── main.jsx      ← replace with code above
-├── index.html        ← leave as-is (Vite generates this)
-├── package.json      ← leave as-is
-└── vite.config.js    ← leave as-is
