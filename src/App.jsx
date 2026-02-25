@@ -3,11 +3,9 @@ import "./App.css";
 
 const BASE_URL = "https://api.disneyapi.dev";
 
-// ─── localStorage helpers (bonus feature) ─────────────────────────────────
 const getFavorites = () => JSON.parse(localStorage.getItem("disney-favorites") || "[]");
 const saveFavorites = (list) => localStorage.setItem("disney-favorites", JSON.stringify(list));
 
-// ─── Tag pill list ─────────────────────────────────────────────────────────
 function TagList({ label, items }) {
   if (!items || items.length === 0) return null;
   return (
@@ -23,24 +21,19 @@ function TagList({ label, items }) {
   );
 }
 
-// ─── Character Card ────────────────────────────────────────────────────────
-function CharacterCard({ character, onSelect, onToggleFavorite, isFavorite }) {
+function MovieCard({ character, onSelect, onToggleFavorite, isFavorite }) {
   return (
     <div className="card" onClick={() => onSelect(character._id)}>
       <div className="card-poster">
         {character.imageUrl ? (
           <img src={character.imageUrl} alt={character.name} loading="lazy" />
         ) : (
-          <div className="no-poster">
-            <span>✨</span>
-            <p>No Image</p>
-          </div>
+          <div className="no-poster"><span>🎬</span><p>No Image</p></div>
         )}
         <div className="card-overlay">
           <button
             className={`watchlist-btn ${isFavorite ? "added" : ""}`}
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(character); }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite ? "♥ Saved" : "♡ Favorite"}
           </button>
@@ -50,17 +43,14 @@ function CharacterCard({ character, onSelect, onToggleFavorite, isFavorite }) {
         {character.films?.length > 0 && (
           <span className="card-type">🎬 {character.films.length} film{character.films.length !== 1 ? "s" : ""}</span>
         )}
-        {character.tvShows?.length > 0 && (
-          <span className="card-type">📺 {character.tvShows.length} show{character.tvShows.length !== 1 ? "s" : ""}</span>
-        )}
         <h3 className="card-title">{character.name}</h3>
+        {character.films?.[0] && <p className="card-year">{character.films[0]}</p>}
       </div>
     </div>
   );
 }
 
-// ─── Character Modal ───────────────────────────────────────────────────────
-function CharacterModal({ characterId, onClose, onToggleFavorite, favorites }) {
+function MovieModal({ characterId, onClose, onToggleFavorite, favorites }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -92,11 +82,15 @@ function CharacterModal({ characterId, onClose, onToggleFavorite, favorites }) {
               {detail.imageUrl ? (
                 <img src={detail.imageUrl} alt={detail.name} />
               ) : (
-                <div className="no-poster large"><span>✨</span></div>
+                <div className="no-poster large"><span>🎬</span></div>
               )}
               <button
                 className={`watchlist-btn big ${isFavorite ? "added" : ""}`}
-                onClick={() => onToggleFavorite({ _id: detail._id, name: detail.name, imageUrl: detail.imageUrl, films: detail.films, tvShows: detail.tvShows })}
+                onClick={() => onToggleFavorite({
+                  _id: detail._id, name: detail.name,
+                  imageUrl: detail.imageUrl, films: detail.films,
+                  tvShows: detail.tvShows
+                })}
               >
                 {isFavorite ? "♥ In Favorites" : "♡ Add to Favorites"}
               </button>
@@ -118,14 +112,13 @@ function CharacterModal({ characterId, onClose, onToggleFavorite, favorites }) {
             </div>
           </div>
         ) : (
-          <p style={{ padding: "2rem", color: "var(--muted)" }}>Could not load character details.</p>
+          <p style={{ padding: "2rem", color: "var(--muted)" }}>Could not load details.</p>
         )}
       </div>
     </div>
   );
 }
 
-// ─── Favorites Sidebar ─────────────────────────────────────────────────────
 function FavoritesSidebar({ favorites, onSelect, onRemove, onClose }) {
   return (
     <div className="sidebar">
@@ -134,26 +127,22 @@ function FavoritesSidebar({ favorites, onSelect, onRemove, onClose }) {
         <button className="icon-btn" onClick={onClose}>✕</button>
       </div>
       {favorites.length === 0 ? (
-        <p className="sidebar-empty">No characters saved yet.<br />Click "♡ Favorite" on any character.</p>
+        <p className="sidebar-empty">No movies saved yet.<br />Click "♡ Favorite" on any result.</p>
       ) : (
         <ul className="sidebar-list">
           {favorites.map((c) => (
             <li key={c._id} className="sidebar-item" onClick={() => onSelect(c._id)}>
-              {c.imageUrl ? (
-                <img src={c.imageUrl} alt={c.name} />
-              ) : (
-                <div className="sidebar-no-poster">✨</div>
-              )}
+              {c.imageUrl
+                ? <img src={c.imageUrl} alt={c.name} />
+                : <div className="sidebar-no-poster">🎬</div>
+              }
               <div className="sidebar-meta">
                 <p className="sidebar-title">{c.name}</p>
-                {c.films?.length > 0 && (
-                  <p className="sidebar-year">{c.films[0]}</p>
-                )}
+                {c.films?.[0] && <p className="sidebar-year">{c.films[0]}</p>}
               </div>
               <button
                 className="sidebar-remove"
                 onClick={(e) => { e.stopPropagation(); onRemove(c._id); }}
-                aria-label="Remove"
               >✕</button>
             </li>
           ))}
@@ -163,7 +152,6 @@ function FavoritesSidebar({ favorites, onSelect, onRemove, onClose }) {
   );
 }
 
-// ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -182,14 +170,13 @@ export default function App() {
   useEffect(() => { inputRef.current?.focus(); }, []);
   useEffect(() => { saveFavorites(favorites); }, [favorites]);
 
-  const browseAll = useCallback(async (p) => {
-    setLoading(true);
-    setError("");
-    setBrowsing(true);
+  const browseMovies = useCallback(async (p) => {
+    setLoading(true); setError(""); setBrowsing(true);
     try {
       const res = await fetch(`${BASE_URL}/character?page=${p}`);
       const data = await res.json();
-      setResults(data.data || []);
+      const withFilms = (data.data || []).filter((c) => c.films && c.films.length > 0);
+      setResults(withFilms);
       setTotalPages(data.info?.totalPages || 1);
       setTotalCount(data.info?.count || 0);
       setSearched("");
@@ -200,13 +187,11 @@ export default function App() {
     }
   }, []);
 
-  const search = useCallback(async (q, p) => {
-    if (!q.trim()) return browseAll(1);
-    setLoading(true);
-    setError("");
-    setBrowsing(false);
+  const searchByMovie = useCallback(async (q, p) => {
+    if (!q.trim()) return browseMovies(1);
+    setLoading(true); setError(""); setBrowsing(false);
     try {
-      const res = await fetch(`${BASE_URL}/character?name=${encodeURIComponent(q)}&page=${p}`);
+      const res = await fetch(`${BASE_URL}/character?films=${encodeURIComponent(q)}&page=${p}`);
       const data = await res.json();
       const items = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
       if (items.length > 0) {
@@ -216,29 +201,23 @@ export default function App() {
         setSearched(q);
       } else {
         setResults([]);
-        setError(`No characters found for "${q}".`);
-        setTotalPages(0);
-        setTotalCount(0);
+        setError(`No results found for "${q}". Try "Aladdin", "Moana", or "Frozen".`);
+        setTotalPages(0); setTotalCount(0);
       }
     } catch {
       setError("Network error. Please check your connection.");
     } finally {
       setLoading(false);
     }
-  }, [browseAll]);
+  }, [browseMovies]);
 
-  useEffect(() => { browseAll(1); }, [browseAll]);
+  useEffect(() => { browseMovies(1); }, [browseMovies]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setPage(1);
-    search(query, 1);
-  };
+  const handleSubmit = (e) => { e.preventDefault(); setPage(1); searchByMovie(query, 1); };
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
-    if (browsing) browseAll(newPage);
-    else search(searched, newPage);
+    if (browsing) browseMovies(newPage); else searchByMovie(searched, newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -249,6 +228,8 @@ export default function App() {
     });
   };
 
+  const suggestions = ["Aladdin", "Moana", "Encanto", "The Lion King", "Frozen", "Lilo & Stitch"];
+
   return (
     <div className={`app ${showFavorites ? "sidebar-open" : ""}`}>
       <div className="grain" aria-hidden="true" />
@@ -258,7 +239,7 @@ export default function App() {
           <div className="logo-mark">✦</div>
           <div>
             <h1 className="logo">DISNEY VAULT</h1>
-            <p className="tagline">Explore 9,800+ Disney characters</p>
+            <p className="tagline">Search Disney movies & their characters</p>
           </div>
         </div>
         <button className="watchlist-toggle" onClick={() => setShowFavorites((s) => !s)}>
@@ -276,7 +257,7 @@ export default function App() {
               ref={inputRef}
               type="text"
               className="search-input"
-              placeholder='Search e.g. "Mickey Mouse", "Elsa", "Simba"...'
+              placeholder='Search by movie title e.g. "Aladdin", "Moana", "Frozen"...'
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -284,9 +265,22 @@ export default function App() {
               {loading ? <span className="btn-spinner" /> : "Search"}
             </button>
           </div>
+          <div className="filter-row">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`filter-btn ${searched === s ? "active" : ""}`}
+                onClick={() => { setQuery(s); setPage(1); searchByMovie(s, 1); }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           {query && (
-            <button type="button" className="clear-btn" onClick={() => { setQuery(""); setPage(1); browseAll(1); }}>
-              ✕ Clear — Browse all characters
+            <button type="button" className="clear-btn"
+              onClick={() => { setQuery(""); setPage(1); browseMovies(1); }}>
+              ✕ Clear — Browse all
             </button>
           )}
         </form>
@@ -294,18 +288,17 @@ export default function App() {
 
       <main className="main">
         {error && <p className="error-msg">{error}</p>}
-
         {results.length > 0 && (
           <>
             <p className="results-count">
               {browsing
-                ? <>Browsing all Disney characters — Page <strong>{page}</strong> of <strong>{totalPages}</strong></>
-                : <>Found <strong>{totalCount}</strong> result{totalCount !== 1 ? "s" : ""} for "<em>{searched}</em>"</>
+                ? <>Browsing Disney movie characters — Page <strong>{page}</strong> of <strong>{totalPages}</strong></>
+                : <>Found <strong>{totalCount}</strong> character{totalCount !== 1 ? "s" : ""} in "<em>{searched}</em>"</>
               }
             </p>
             <div className="grid">
               {results.map((character) => (
-                <CharacterCard
+                <MovieCard
                   key={character._id}
                   character={character}
                   onSelect={setSelectedID}
@@ -323,25 +316,23 @@ export default function App() {
             )}
           </>
         )}
-
         {!loading && results.length === 0 && !error && (
           <div className="empty-state">
             <div className="empty-icon">✦</div>
-            <h2>The Magic Awaits</h2>
-            <p>Search for any Disney character above.</p>
+            <h2>Find Your Favorite Film</h2>
+            <p>Type a Disney movie title to see all its characters.</p>
           </div>
         )}
       </main>
 
       {selectedID && (
-        <CharacterModal
+        <MovieModal
           characterId={selectedID}
           onClose={() => setSelectedID(null)}
           onToggleFavorite={handleToggleFavorite}
           favorites={favorites}
         />
       )}
-
       {showFavorites && (
         <>
           <div className="sidebar-backdrop" onClick={() => setShowFavorites(false)} />
